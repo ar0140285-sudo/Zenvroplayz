@@ -6,6 +6,7 @@ import { soundManager } from '../utils/sound';
 interface HeroSectionProps {
   channel: ChannelProfile;
   featuredVideo: VideoItem;
+  totalDownloads?: number;
   onPlayVideo: (video: VideoItem) => void;
   onNavigateTab: (tab: 'videos' | 'mods' | 'community' | 'updates') => void;
 }
@@ -13,6 +14,7 @@ interface HeroSectionProps {
 export const HeroSection: React.FC<HeroSectionProps> = ({
   channel,
   featuredVideo,
+  totalDownloads = 8,
   onPlayVideo,
   onNavigateTab
 }) => {
@@ -164,7 +166,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   <span className="truncate">Downloads</span>
                 </div>
                 <div className="text-lg sm:text-2xl font-black text-white tabular-nums tracking-tight mt-0.5">
-                  65K+
+                  {totalDownloads}
                 </div>
               </div>
             </div>

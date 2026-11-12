@@ -32,7 +32,7 @@ export default function App() {
 
   // Mods State (with persistent download counts)
   const [mods, setMods] = useState<ModItem[]>(() => {
-    const saved = localStorage.getItem('zenvro_mods_v2');
+    const saved = localStorage.getItem('zenvro_mods_v3');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -42,6 +42,8 @@ export default function App() {
     }
     return INITIAL_MODS;
   });
+
+  const totalDownloads = mods.reduce((sum, m) => sum + m.downloads, 0);
 
   // Community Posts State
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>(() => {
@@ -70,7 +72,7 @@ export default function App() {
 
   // Synchronize to localStorage
   useEffect(() => {
-    localStorage.setItem('zenvro_mods_v2', JSON.stringify(mods));
+    localStorage.setItem('zenvro_mods_v3', JSON.stringify(mods));
   }, [mods]);
 
   useEffect(() => {
@@ -197,6 +199,7 @@ export default function App() {
         <HeroSection
           channel={channel}
           featuredVideo={videos[0]}
+          totalDownloads={totalDownloads}
           onPlayVideo={(video) => setPlayingVideo(video)}
           onNavigateTab={setActiveTab}
         />
