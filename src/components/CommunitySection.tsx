@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   MessageSquare, Heart, Pin, Send, CornerDownRight, 
-  Sparkles, Check, ShieldCheck, User, MessageCircle, Lock
+  Sparkles, Check, ShieldCheck, MessageCircle, Lock, Smile, Flame, Swords, Diamond
 } from 'lucide-react';
 import { CommunityPost, CommunityReply, ChannelProfile } from '../types';
 import { soundManager } from '../utils/sound';
@@ -25,28 +25,33 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
   onToggleLikeReply,
   onTogglePinPost
 }) => {
-  // Filter state
+  // Category filter state
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [activeReplyPostId, setActiveReplyPostId] = useState<string | null>(null);
 
-  // New Post Form State
+  // Persistent user name so viewers only type it once
+  const [authorName, setAuthorName] = useState<string>(() => {
+    return localStorage.getItem('zenvro_user_name') || '';
+  });
+
+  // Creator Verification
   const [isCreatorVerified, setIsCreatorVerified] = useState<boolean>(() => {
     return localStorage.getItem('zenvro_is_creator_verified') === 'true';
   });
   const [showCreatorPinPrompt, setShowCreatorPinPrompt] = useState<boolean>(false);
   const [creatorPinInput, setCreatorPinInput] = useState<string>('');
   const [creatorPinError, setCreatorPinError] = useState<string>('');
-
   const [postAsCreator, setPostAsCreator] = useState<boolean>(isCreatorVerified);
-  const [authorName, setAuthorName] = useState<string>('');
-  const [postCategory, setPostCategory] = useState<CommunityPost['category']>('General');
-  const [postTitle, setPostTitle] = useState<string>('');
+
+  // Chat message & topic state
   const [postContent, setPostContent] = useState<string>('');
+  const [postTitle, setPostTitle] = useState<string>('');
+  const [postCategory, setPostCategory] = useState<CommunityPost['category']>('General');
   const [postSuccess, setPostSuccess] = useState<boolean>(false);
 
-  // Reply Form State
+  // Reply states
   const [replyTextMap, setReplyTextMap] = useState<Record<string, string>>({});
-  const [replyAuthorMap, setReplyAuthorMap] = useState<Record<string, string>>({});
+  const replyInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const categories: ('All' | CommunityPost['category'])[] = [
     'All',
@@ -56,6 +61,15 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
     'Fan Art',
     'Video Feedback'
   ];
+
+  const quickEmojis = ['🔥', '⚔️', '💎', '⛏️', '🛡️', '❤️', '👑', '🚀'];
+
+  // Save author name to localStorage
+  useEffect(() => {
+    if (authorName.trim()) {
+      localStorage.setItem('zenvro_user_name', authorName.trim());
+    }
+  }, [authorName]);
 
   const handleVerifyCreatorPin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,14 +85,28 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
     }
   };
 
+  const handleAddEmoji = (emoji: string) => {
+    soundManager.playClick();
+    setPostContent(prev => prev + emoji);
+  };
+
   const handlePostSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!postTitle.trim() || !postContent.trim()) return;
+    const cleanContent = postContent.trim();
+    if (!cleanContent) return;
 
     soundManager.playXpChime();
 
     const isCreator = postAsCreator && isCreatorVerified;
     const finalAuthor = isCreator ? channel.name : (authorName.trim() || 'Minecraft Miner');
+
+    // If title was not provided, generate a clean topic title from the message content
+    let finalTitle = postTitle.trim();
+    if (!finalTitle) {
+      finalTitle = cleanContent.length > 50 
+        ? `${cleanContent.slice(0, 48)}...` 
+        : cleanContent;
+    }
 
     onAddPost({
       authorName: finalAuthor,
@@ -89,15 +117,14 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
       isCreator: isCreator,
       isPinned: isCreator,
       category: postCategory,
-      title: postTitle.trim(),
-      content: postContent.trim()
+      title: finalTitle,
+      content: cleanContent
     });
 
-    setPostTitle('');
     setPostContent('');
-    if (!isCreator) setAuthorName('');
+    setPostTitle('');
     setPostSuccess(true);
-    setTimeout(() => setPostSuccess(false), 3000);
+    setTimeout(() => setPostSuccess(false), 3500);
   };
 
   const handleReplySubmit = (postId: string) => {
@@ -106,7 +133,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
 
     soundManager.playClick();
     const isCreator = isCreatorVerified;
-    const author = replyAuthorMap[postId]?.trim() || (isCreator ? channel.name : 'Gamer Fan');
+    const author = isCreator ? channel.name : (authorName.trim() || 'Gamer Fan');
 
     onAddReply(postId, {
       authorName: isCreator ? channel.name : author,
@@ -119,7 +146,15 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
     });
 
     setReplyTextMap(prev => ({ ...prev, [postId]: '' }));
-    if (!isCreator) setReplyAuthorMap(prev => ({ ...prev, [postId]: '' }));
+  };
+
+  const handleOpenReplyBox = (postId: string) => {
+    soundManager.playClick();
+    setActiveReplyPostId(postId);
+    setTimeout(() => {
+      const input = replyInputRefs.current[postId];
+      if (input) input.focus();
+    }, 100);
   };
 
   const filteredPosts = posts.filter(post => {
@@ -135,23 +170,25 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
         <div className="text-center space-y-1.5 sm:space-y-2 max-w-2xl mx-auto">
           <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-emerald-400">
             <MessageCircle className="w-4 h-4" />
-            <span>Official Viewer Community</span>
+            <span>Live Fan & Creator Community</span>
           </div>
           <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-            {channel.name} Community Lounge
+            {channel.name} Community Lounge & Chat
           </h2>
           <p className="text-slate-400 text-xs sm:text-sm">
-            Sabhi viewers aur subscribers yaha comment, questions aur ideas post kar sakte hai. Har koi in discussions ko dekh sakta hai aur reply kar sakta hai!
+            Sabhi viewers yaha comment, feedback aur Minecraft ideas share kar sakte hai. Messages instant live post hote hai!
           </p>
         </div>
 
-        {/* Create New Post Box (Mobile Friendly) */}
-        <div className="bg-slate-900/90 rounded-2xl border-2 border-emerald-500/30 p-4 sm:p-6 shadow-xl mc-block-border space-y-4">
+        {/* Live Chat & Discussion Composer Box */}
+        <div className="bg-slate-900/90 rounded-2xl border-2 border-emerald-500/40 p-4 sm:p-6 shadow-xl mc-block-border space-y-4">
+          
+          {/* Header Row: Title & Creator Badge */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
             <div className="flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-emerald-400" />
               <h3 className="font-display font-bold text-sm sm:text-base text-white">
-                Write a Post or Discussion
+                Share a Message or Discussion
               </h3>
             </div>
 
@@ -160,7 +197,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
               {isCreatorVerified ? (
                 <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 rounded-lg font-bold">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Verified Creator</span>
+                  <span>Verified Creator ({channel.name})</span>
                 </div>
               ) : (
                 <button
@@ -177,7 +214,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
 
           {/* Creator Pin Verification Modal */}
           {showCreatorPinPrompt && (
-            <div className="p-3.5 bg-slate-950 rounded-xl border border-amber-500/40 space-y-2.5">
+            <div className="p-3.5 bg-slate-950 rounded-xl border border-amber-500/40 space-y-2.5 animate-fade-in">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-amber-400 flex items-center gap-1.5">
                   <Lock className="w-3.5 h-3.5" />
@@ -185,7 +222,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                 </span>
                 <button
                   onClick={() => setShowCreatorPinPrompt(false)}
-                  className="text-xs text-slate-400 hover:text-white py-1"
+                  className="text-xs text-slate-400 hover:text-white py-1 cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -211,9 +248,10 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
             </div>
           )}
 
-          <form onSubmit={handlePostSubmit} className="space-y-3.5 sm:space-y-4">
+          {/* Form */}
+          <form onSubmit={handlePostSubmit} className="space-y-3 sm:space-y-4">
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* Author Name */}
               {isCreatorVerified && postAsCreator ? (
                 <div className="flex items-center gap-3 py-1.5 px-3 bg-slate-950/70 rounded-xl border border-slate-800">
@@ -230,12 +268,11 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
               ) : (
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Your Gamer Tag / Name:
+                    Your Name / Gamer Tag:
                   </label>
                   <input
                     type="text"
-                    required
-                    placeholder="e.g. MinerPro99"
+                    placeholder="Enter your name (e.g. GamerPro99)"
                     value={authorName}
                     onChange={(e) => setAuthorName(e.target.value)}
                     className="w-full px-3 py-2.5 bg-slate-950 text-white placeholder-slate-500 text-sm sm:text-xs rounded-xl border border-slate-800 focus:outline-none focus:border-emerald-500 transition-colors min-h-[42px]"
@@ -253,58 +290,72 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                   onChange={(e) => setPostCategory(e.target.value as CommunityPost['category'])}
                   className="w-full px-3 py-2.5 bg-slate-950 text-white text-sm sm:text-xs rounded-xl border border-slate-800 focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer min-h-[42px]"
                 >
-                  <option value="General">General Discussion</option>
-                  <option value="Mod Ideas">Mod Ideas & Requests</option>
-                  <option value="SMP Server">SMP Server & Recruitment</option>
-                  <option value="Fan Art">Fan Art & Builds</option>
-                  <option value="Video Feedback">Video Feedback & Suggestions</option>
+                  <option value="General">💬 General Chat</option>
+                  <option value="Mod Ideas">💡 Mod Ideas & Requests</option>
+                  <option value="SMP Server">⚔️ SMP Server & Teaming</option>
+                  <option value="Fan Art">🎨 Fan Art & Builds</option>
+                  <option value="Video Feedback">🎬 Video Feedback</option>
                 </select>
               </div>
             </div>
 
-            {/* Post Title */}
+            {/* Optional Topic Title */}
             <div>
               <input
                 type="text"
-                required
-                placeholder="Topic Title (e.g. Bhai agle episode me Warden fight challenge karo!)"
+                placeholder="Topic Title (Optional - leave empty for quick chat message)"
                 value={postTitle}
                 onChange={(e) => setPostTitle(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-950 text-white placeholder-slate-500 text-sm font-semibold rounded-xl border border-slate-800 focus:outline-none focus:border-emerald-500 transition-colors min-h-[44px]"
+                className="w-full px-3.5 py-2 bg-slate-950/70 text-white placeholder-slate-500 text-xs rounded-xl border border-slate-800/80 focus:outline-none focus:border-emerald-500 transition-colors"
               />
             </div>
 
-            {/* Post Content */}
+            {/* Main Message Textarea (Required) */}
             <div>
               <textarea
                 required
                 rows={3}
-                placeholder="Apna message, question ya suggestion yaha likhiye..."
+                placeholder="Type your message, question, or comment here (Press 'Send Message' to post)..."
                 value={postContent}
                 onChange={(e) => setPostContent(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-slate-950 text-white placeholder-slate-500 text-sm sm:text-xs rounded-xl border border-slate-800 focus:outline-none focus:border-emerald-500 transition-colors leading-relaxed"
               />
             </div>
 
-            {/* Submit Action */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-1">
-              <span className="text-[11px] text-slate-500">
-                100% Free & Open discussion. Everyone can see and reply.
-              </span>
+            {/* Quick Emoji Bar & Action Row */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
+              {/* Quick Emojis */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+                <span className="text-[11px] text-slate-400 mr-1 flex items-center gap-1 shrink-0">
+                  <Smile className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Add:</span>
+                </span>
+                {quickEmojis.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => handleAddEmoji(emoji)}
+                    className="px-2 py-1 bg-slate-950 hover:bg-slate-800 rounded-lg text-sm border border-slate-800 transition-colors cursor-pointer"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
 
-              <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+              {/* Submit Button */}
+              <div className="flex items-center gap-2 justify-end">
                 {postSuccess && (
-                  <span className="text-xs text-emerald-400 font-bold flex items-center gap-1 animate-fade-in">
+                  <span className="text-xs text-emerald-400 font-bold flex items-center gap-1 animate-fade-in mr-2">
                     <Check className="w-4 h-4" />
-                    <span>Published!</span>
+                    <span>Live Posted!</span>
                   </span>
                 )}
                 <button
                   type="submit"
-                  className="mc-block-btn w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow transition-all cursor-pointer min-h-[44px]"
+                  className="mc-block-btn flex items-center justify-center gap-2 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl shadow transition-all cursor-pointer min-h-[42px]"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Publish Post</span>
+                  <span>Send Message</span>
                 </button>
               </div>
             </div>
@@ -312,7 +363,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
           </form>
         </div>
 
-        {/* Category Filters Bar with Horizontal Touch Swipe */}
+        {/* Category Filters Bar */}
         <div className="flex items-center justify-between gap-3 overflow-x-auto pb-1.5 no-scrollbar touch-pan-x -mx-1 px-1">
           <div className="flex items-center gap-1.5 shrink-0">
             {categories.map((cat) => (
@@ -334,16 +385,16 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
           </div>
 
           <span className="text-xs text-slate-500 font-mono shrink-0 hidden sm:inline">
-            {filteredPosts.length} Discussions
+            {filteredPosts.length} Active Conversations
           </span>
         </div>
 
-        {/* Posts Feed */}
-        <div className="space-y-4 sm:space-y-6">
+        {/* Posts & Chat Stream */}
+        <div className="space-y-4 sm:space-y-5">
           {filteredPosts.length === 0 ? (
             <div className="text-center py-10 bg-slate-900/30 rounded-xl border border-slate-800/80">
               <MessageSquare className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-              <p className="text-slate-400 text-sm">No posts in this category yet. Be the first to start one!</p>
+              <p className="text-slate-400 text-sm">No messages in this topic yet. Be the first to start the chat!</p>
             </div>
           ) : (
             filteredPosts.map((post) => (
@@ -353,9 +404,9 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                   post.isPinned
                     ? 'bg-slate-900/95 border-emerald-500/60 shadow-emerald-950/20'
                     : 'bg-slate-900/85 border-slate-800 hover:border-slate-700'
-                } p-4 sm:p-5 space-y-3.5 sm:space-y-4`}
+                } p-4 sm:p-5 space-y-3`}
               >
-                {/* Post Author & Header Metadata */}
+                {/* Author Info & Header */}
                 <div className="flex items-start justify-between gap-2.5">
                   <div className="flex items-center gap-2.5 sm:gap-3">
                     <img
@@ -382,7 +433,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                     </div>
                   </div>
 
-                  {/* Pinned Tag */}
+                  {/* Pinned Tag & Pin Toggle */}
                   <div className="flex items-center gap-1 shrink-0">
                     {post.isPinned && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] sm:text-[11px] font-bold rounded">
@@ -398,7 +449,7 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                           onTogglePinPost(post.id);
                         }}
                         title={post.isPinned ? "Unpin post" : "Pin post to top"}
-                        className="p-1.5 text-slate-500 hover:text-amber-400 transition-colors rounded hover:bg-slate-800 min-h-[36px] min-w-[36px] flex items-center justify-center"
+                        className="p-1.5 text-slate-500 hover:text-amber-400 transition-colors rounded hover:bg-slate-800 min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer"
                       >
                         <Pin className="w-3.5 h-3.5" />
                       </button>
@@ -408,15 +459,17 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
 
                 {/* Post Content */}
                 <div className="space-y-1">
-                  <h4 className="font-display font-bold text-sm sm:text-base text-white">
-                    {post.title}
-                  </h4>
-                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">
+                  {post.title !== post.content && (
+                    <h4 className="font-display font-bold text-sm sm:text-base text-white">
+                      {post.title}
+                    </h4>
+                  )}
+                  <p className="text-xs sm:text-sm text-slate-300 leading-relaxed whitespace-pre-wrap break-words">
                     {post.content}
                   </p>
                 </div>
 
-                {/* Post Actions: Like & Reply Toggle (Touch Optimized) */}
+                {/* Actions: Like & Reply Toggle */}
                 <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-xs">
                   <div className="flex items-center gap-2 sm:gap-3">
                     
@@ -426,10 +479,10 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                         soundManager.playLikePop();
                         onToggleLikePost(post.id);
                       }}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-colors cursor-pointer min-h-[40px] ${
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors cursor-pointer min-h-[38px] ${
                         post.hasLiked
                           ? 'bg-red-500/20 text-red-400 border border-red-500/40'
-                          : 'text-slate-400 hover:text-red-400 hover:bg-slate-800 active:bg-slate-800'
+                          : 'text-slate-400 hover:text-red-400 hover:bg-slate-800'
                       }`}
                     >
                       <Heart className={`w-4 h-4 ${post.hasLiked ? 'fill-current' : ''}`} />
@@ -438,14 +491,11 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
 
                     {/* Reply Toggle Button */}
                     <button
-                      onClick={() => {
-                        soundManager.playClick();
-                        setActiveReplyPostId(activeReplyPostId === post.id ? null : post.id);
-                      }}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-colors cursor-pointer min-h-[40px] ${
+                      onClick={() => handleOpenReplyBox(post.id)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-colors cursor-pointer min-h-[38px] ${
                         activeReplyPostId === post.id
                           ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                          : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800 active:bg-slate-800'
+                          : 'text-slate-400 hover:text-emerald-400 hover:bg-slate-800'
                       }`}
                     >
                       <MessageSquare className="w-4 h-4" />
@@ -454,88 +504,80 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                   </div>
 
                   <button
-                    onClick={() => {
-                      soundManager.playClick();
-                      setActiveReplyPostId(post.id);
-                    }}
-                    className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer py-2 px-1"
+                    onClick={() => handleOpenReplyBox(post.id)}
+                    className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:underline cursor-pointer py-1.5 px-2"
                   >
                     + Reply
                   </button>
                 </div>
 
-                {/* Threaded Replies Section */}
-                {(post.replies.length > 0 || activeReplyPostId === post.id) && (
-                  <div className="mt-3 pt-3 border-t border-slate-800/80 space-y-2.5 sm:pl-3">
-                    
-                    {/* Render Existing Nested Replies */}
-                    {post.replies.map((reply) => (
-                      <div
-                        key={reply.id}
-                        className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-xl bg-slate-950/80 border border-slate-800/80"
-                      >
-                        <CornerDownRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500 shrink-0 mt-1" />
-                        <img
-                          src={reply.authorAvatar}
-                          alt={reply.authorName}
-                          className="w-7 h-7 rounded-full bg-slate-900 border border-slate-700 object-cover shrink-0"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="flex-1 space-y-1 min-w-0">
-                          <div className="flex items-center justify-between gap-1">
-                            <div className="flex items-center gap-1.5 truncate">
-                              <span className="font-bold text-xs text-white truncate">{reply.authorName}</span>
-                              {reply.isCreator && (
-                                <span className="px-1 py-0.2 bg-emerald-500/20 text-emerald-300 text-[8px] font-black rounded uppercase border border-emerald-500/40 shrink-0">
-                                  Creator
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-[10px] text-slate-500 shrink-0">{reply.timestamp}</span>
+                {/* Threaded Nested Replies */}
+                <div className="mt-2 pt-2 border-t border-slate-800/70 space-y-2.5 sm:pl-3">
+                  
+                  {/* Existing Replies */}
+                  {post.replies.map((reply) => (
+                    <div
+                      key={reply.id}
+                      className="flex items-start gap-2.5 p-2.5 sm:p-3 rounded-xl bg-slate-950/80 border border-slate-800/80"
+                    >
+                      <CornerDownRight className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-1" />
+                      <img
+                        src={reply.authorAvatar}
+                        alt={reply.authorName}
+                        className="w-7 h-7 rounded-full bg-slate-900 border border-slate-700 object-cover shrink-0"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="flex-1 space-y-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="font-bold text-xs text-white truncate">{reply.authorName}</span>
+                            {reply.isCreator && (
+                              <span className="px-1 py-0.2 bg-emerald-500/20 text-emerald-300 text-[8px] font-black rounded uppercase border border-emerald-500/40 shrink-0">
+                                Creator
+                              </span>
+                            )}
                           </div>
-                          <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap break-words">
-                            {reply.content}
-                          </p>
+                          <span className="text-[10px] text-slate-500 shrink-0">{reply.timestamp}</span>
+                        </div>
+                        <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap break-words">
+                          {reply.content}
+                        </p>
 
-                          <div className="flex items-center gap-2 pt-1">
-                            <button
-                              onClick={() => {
-                                soundManager.playLikePop();
-                                onToggleLikeReply(post.id, reply.id);
-                              }}
-                              className={`flex items-center gap-1 text-[11px] transition-colors py-1 ${
-                                reply.hasLiked ? 'text-red-400 font-bold' : 'text-slate-500 hover:text-red-400'
-                              }`}
-                            >
-                              <Heart className={`w-3 h-3 ${reply.hasLiked ? 'fill-current' : ''}`} />
-                              <span>{reply.likes}</span>
-                            </button>
-                          </div>
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            onClick={() => {
+                              soundManager.playLikePop();
+                              onToggleLikeReply(post.id, reply.id);
+                            }}
+                            className={`flex items-center gap-1 text-[11px] transition-colors py-0.5 cursor-pointer ${
+                              reply.hasLiked ? 'text-red-400 font-bold' : 'text-slate-500 hover:text-red-400'
+                            }`}
+                          >
+                            <Heart className={`w-3 h-3 ${reply.hasLiked ? 'fill-current' : ''}`} />
+                            <span>{reply.likes}</span>
+                          </button>
                         </div>
                       </div>
-                    ))}
+                    </div>
+                  ))}
 
-                    {/* Inline Reply Composer */}
-                    <div className="p-3 bg-slate-950 rounded-xl border border-emerald-900/50 space-y-2 mt-2">
-                      <span className="text-xs font-semibold text-slate-300 flex items-center gap-1">
-                        <CornerDownRight className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Reply to {post.authorName}:</span>
-                      </span>
+                  {/* Reply Input Box (Always accessible or opened upon clicking reply) */}
+                  {(post.replies.length > 0 || activeReplyPostId === post.id) && (
+                    <div className="p-2.5 sm:p-3 bg-slate-950 rounded-xl border border-emerald-900/60 space-y-2 mt-2">
+                      <div className="flex items-center justify-between text-xs text-slate-300">
+                        <span className="flex items-center gap-1">
+                          <CornerDownRight className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Reply as <strong>{isCreatorVerified ? channel.name : (authorName.trim() || 'Viewer')}</strong>:</span>
+                        </span>
+                      </div>
 
-                      {!isCreatorVerified && (
+                      <div className="flex items-center gap-2">
                         <input
+                          ref={(el) => {
+                            replyInputRefs.current[post.id] = el;
+                          }}
                           type="text"
-                          placeholder="Your Gamer Name..."
-                          value={replyAuthorMap[post.id] || ''}
-                          onChange={(e) => setReplyAuthorMap(prev => ({ ...prev, [post.id]: e.target.value }))}
-                          className="w-full px-3 py-2 bg-slate-900 text-white placeholder-slate-500 text-sm sm:text-xs rounded-xl border border-slate-800 focus:outline-none focus:border-emerald-500 min-h-[40px]"
-                        />
-                      )}
-
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                        <input
-                          type="text"
-                          placeholder="Type your reply..."
+                          placeholder="Type your reply and press Enter..."
                           value={replyTextMap[post.id] || ''}
                           onChange={(e) => setReplyTextMap(prev => ({ ...prev, [post.id]: e.target.value }))}
                           onKeyDown={(e) => {
@@ -544,20 +586,20 @@ export const CommunitySection: React.FC<CommunitySectionProps> = ({
                               handleReplySubmit(post.id);
                             }
                           }}
-                          className="flex-1 px-3 py-2 bg-slate-900 text-white placeholder-slate-500 text-sm sm:text-xs rounded-xl border border-slate-800 focus:outline-none focus:border-emerald-500 min-h-[40px]"
+                          className="flex-1 px-3 py-2 bg-slate-900 text-white placeholder-slate-500 text-xs rounded-xl border border-slate-800 focus:outline-none focus:border-emerald-500 min-h-[40px]"
                         />
                         <button
                           type="button"
                           onClick={() => handleReplySubmit(post.id)}
-                          className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold text-xs rounded-xl transition-colors cursor-pointer min-h-[40px]"
+                          className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-bold text-xs rounded-xl transition-colors cursor-pointer min-h-[40px] whitespace-nowrap"
                         >
-                          Send Reply
+                          Reply
                         </button>
                       </div>
                     </div>
+                  )}
 
-                  </div>
-                )}
+                </div>
 
               </div>
             ))
