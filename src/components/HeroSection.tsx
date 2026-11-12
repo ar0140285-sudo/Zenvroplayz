@@ -166,7 +166,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
                   <span className="truncate">Downloads</span>
                 </div>
                 <div className="text-lg sm:text-2xl font-black text-white tabular-nums tracking-tight mt-0.5">
-                  {totalDownloads}
+                  {totalDownloads}+
                 </div>
               </div>
             </div>

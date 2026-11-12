@@ -1,17 +1,23 @@
 import { ChannelProfile, VideoItem, ModItem, CommunityPost, UpdateItem } from '../types';
 
+// ESM image imports ensure Vite bundles, optimizes, and includes images in the production Vercel build
+import heroBanner from '../assets/images/hero_minecraft_epic_1794487062764.jpg';
+import channelAvatar from '../assets/images/minecraft_channel_avatar_1794487063805.jpg';
+import modShowcase from '../assets/images/minecraft_mod_showcase_1794487063339.jpg';
+import survivalThumb from '../assets/images/minecraft_survival_thumb_1794487063551.jpg';
+
 export const INITIAL_CHANNEL_PROFILE: ChannelProfile = {
   name: "Zenvroplayz",
   handle: "@zenvroplayz",
-  subscribers: "300",
+  subscribers: "300+",
   videoCount: 86,
-  totalViews: "381,793",
+  totalViews: "381,793+",
   serverIp: "play.zenvroplayz.net",
   serverVersion: "1.21.1 Java & Bedrock",
   discordUrl: "https://discord.gg/zenvroplayz",
   youtubeUrl: "https://youtube.com/@zenvroplayz",
-  avatarUrl: "/src/assets/images/minecraft_channel_avatar_1794487063805.jpg",
-  bannerUrl: "/src/assets/images/hero_minecraft_epic_1794487062764.jpg",
+  avatarUrl: channelAvatar,
+  bannerUrl: heroBanner,
   bio: "Welcome to the official Zenvroplayz Gaming Hub! Yaha pe Minecraft ke daily hardcore adventures, custom modpacks, SMP updates aur gaming videos milenge. Subscribe karo aur community join karo!",
 };
 
@@ -20,7 +26,7 @@ export const INITIAL_VIDEOS: VideoItem[] = [
     id: "vid-1",
     title: "100 DAYS In Ancient Nether Fortress (Hardcore Minecraft Adventure)",
     series: "100 Days Challenge",
-    thumbnailUrl: "/src/assets/images/minecraft_survival_thumb_1794487063551.jpg",
+    thumbnailUrl: survivalThumb,
     youtubeId: "zenvro-ep-101",
     duration: "32:15",
     views: "145K views",
@@ -32,7 +38,7 @@ export const INITIAL_VIDEOS: VideoItem[] = [
     id: "vid-2",
     title: "Testing Insane Custom RPG Modpack in Minecraft 1.21 (Enchanted Biomes)",
     series: "Modded SMP",
-    thumbnailUrl: "/src/assets/images/minecraft_mod_showcase_1794487063339.jpg",
+    thumbnailUrl: modShowcase,
     youtubeId: "zenvro-ep-102",
     duration: "21:40",
     views: "98K views",
@@ -44,7 +50,7 @@ export const INITIAL_VIDEOS: VideoItem[] = [
     id: "vid-3",
     title: "Building A Mega Emerald Fortress in Minecraft Survival",
     series: "Hardcore Survival",
-    thumbnailUrl: "/src/assets/images/hero_minecraft_epic_1794487062764.jpg",
+    thumbnailUrl: heroBanner,
     youtubeId: "zenvro-ep-103",
     duration: "26:10",
     views: "112K views",
@@ -56,7 +62,7 @@ export const INITIAL_VIDEOS: VideoItem[] = [
     id: "vid-4",
     title: "Top 10 Secret Redstone Defense Traps That Actually Work",
     series: "Building & Redstone",
-    thumbnailUrl: "/src/assets/images/minecraft_survival_thumb_1794487063551.jpg",
+    thumbnailUrl: survivalThumb,
     youtubeId: "zenvro-ep-104",
     duration: "17:25",
     views: "64K views",
@@ -68,7 +74,7 @@ export const INITIAL_VIDEOS: VideoItem[] = [
     id: "vid-5",
     title: "Minecraft 1.21 Tricky Trials: Testing Every Single Mace Enchantment",
     series: "Hardcore Survival",
-    thumbnailUrl: "/src/assets/images/minecraft_mod_showcase_1794487063339.jpg",
+    thumbnailUrl: modShowcase,
     youtubeId: "zenvro-ep-105",
     duration: "14:50",
     views: "89K views",
@@ -89,7 +95,7 @@ export const INITIAL_MODS: ModItem[] = [
     downloads: 4,
     rating: 4.9,
     fileSize: "14.2 MB",
-    imageUrl: "/src/assets/images/minecraft_mod_showcase_1794487063339.jpg",
+    imageUrl: modShowcase,
     description: "Custom combat and magic overhaul adding 24 runic spells, elemental infusions (Thunder, Frost, Netherfire), and animated combat mechanics.",
     features: [
       "24 Unique Craftable Runic Tablets",
@@ -117,7 +123,7 @@ export const INITIAL_MODS: ModItem[] = [
     downloads: 3,
     rating: 4.8,
     fileSize: "6.8 MB",
-    imageUrl: "/src/assets/images/hero_minecraft_epic_1794487062764.jpg",
+    imageUrl: heroBanner,
     description: "Custom shader preset used across Zenvroplayz YouTube videos! Delivers vibrant emerald grass colors, crisp volumetric clouds, and smooth lighting without lag.",
     features: [
       "Custom Emerald & Gold lighting presets",
@@ -145,7 +151,7 @@ export const INITIAL_MODS: ModItem[] = [
     downloads: 1,
     rating: 4.7,
     fileSize: "3.5 MB",
-    imageUrl: "/src/assets/images/minecraft_survival_thumb_1794487063551.jpg",
+    imageUrl: survivalThumb,
     description: "The mod we run on our viewer SMP server! Craft waystones using obsidian and ender pearls, and activate warp anchors.",
     features: [
       "XP-cost teleport balance system",
@@ -165,13 +171,12 @@ export const INITIAL_MODS: ModItem[] = [
   }
 ];
 
-// Clean initial community post from Zenvroplayz (no fake random users)
 export const INITIAL_COMMUNITY_POSTS: CommunityPost[] = [
   {
     id: "post-welcome",
     authorName: "Zenvroplayz",
     authorHandle: "@zenvroplayz",
-    authorAvatar: "/src/assets/images/minecraft_channel_avatar_1794487063805.jpg",
+    authorAvatar: channelAvatar,
     isCreator: true,
     isPinned: true,
     category: "General",

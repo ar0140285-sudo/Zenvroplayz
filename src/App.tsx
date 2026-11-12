@@ -47,7 +47,7 @@ export default function App() {
 
   // Community Posts State
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>(() => {
-    const saved = localStorage.getItem('zenvro_community_posts_v2');
+    const saved = localStorage.getItem('zenvro_community_posts_v3');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -76,7 +76,7 @@ export default function App() {
   }, [mods]);
 
   useEffect(() => {
-    localStorage.setItem('zenvro_community_posts_v2', JSON.stringify(communityPosts));
+    localStorage.setItem('zenvro_community_posts_v3', JSON.stringify(communityPosts));
   }, [communityPosts]);
 
   // Handlers
