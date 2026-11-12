@@ -29,15 +29,15 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-50 bg-[#0d121a]/95 backdrop-blur-md border-b border-emerald-900/40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3 sm:gap-8">
         
-        {/* Zone 1: Single element brand wordmark */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Zone 1: Brand Wordmark */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button 
             onClick={() => handleNavClick('videos')}
-            className="flex items-center gap-3 group text-left focus:outline-none cursor-pointer"
+            className="flex items-center gap-2 sm:gap-3 group text-left focus:outline-none cursor-pointer min-h-[44px]"
           >
-            <div className="relative w-9 h-9 rounded bg-emerald-950 border border-emerald-500/50 overflow-hidden shrink-0 group-hover:border-emerald-400 transition-colors">
+            <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded bg-emerald-950 border border-emerald-500/50 overflow-hidden shrink-0 group-hover:border-emerald-400 transition-colors">
               <img 
                 src={channel.avatarUrl} 
                 alt={channel.name} 
@@ -50,19 +50,19 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="absolute inset-0 bg-emerald-500/10 group-hover:bg-transparent transition-colors" />
             </div>
             <div className="flex flex-col">
-              <span className="font-display font-extrabold text-lg text-white tracking-tight flex items-center gap-1.5 whitespace-nowrap">
+              <span className="font-display font-extrabold text-base sm:text-lg text-white tracking-tight flex items-center gap-1 sm:gap-1.5 whitespace-nowrap">
                 {channel.name}
-                <Swords className="w-4 h-4 text-emerald-400 inline" />
+                <Swords className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 inline" />
               </span>
             </div>
           </button>
         </div>
 
-        {/* Zone 2: 4 Clean single-line text navigation links */}
+        {/* Zone 2: Desktop Navigation Links (Hidden on Mobile, handled by bottom nav) */}
         <nav className="hidden md:flex items-center gap-7 text-sm font-semibold tracking-wide">
           <button
             onClick={() => handleNavClick('videos')}
-            className={`whitespace-nowrap transition-colors pb-1 relative cursor-pointer ${
+            className={`whitespace-nowrap transition-colors pb-1 relative cursor-pointer min-h-[44px] flex items-center ${
               activeTab === 'videos' 
                 ? 'text-emerald-400 font-bold' 
                 : 'text-slate-300 hover:text-white'
@@ -76,7 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => handleNavClick('mods')}
-            className={`whitespace-nowrap transition-colors pb-1 relative cursor-pointer ${
+            className={`whitespace-nowrap transition-colors pb-1 relative cursor-pointer min-h-[44px] flex items-center ${
               activeTab === 'mods' 
                 ? 'text-emerald-400 font-bold' 
                 : 'text-slate-300 hover:text-white'
@@ -90,7 +90,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => handleNavClick('community')}
-            className={`whitespace-nowrap transition-colors pb-1 relative cursor-pointer ${
+            className={`whitespace-nowrap transition-colors pb-1 relative cursor-pointer min-h-[44px] flex items-center ${
               activeTab === 'community' 
                 ? 'text-emerald-400 font-bold' 
                 : 'text-slate-300 hover:text-white'
@@ -104,7 +104,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           <button
             onClick={() => handleNavClick('updates')}
-            className={`whitespace-nowrap transition-colors pb-1 relative cursor-pointer ${
+            className={`whitespace-nowrap transition-colors pb-1 relative cursor-pointer min-h-[44px] flex items-center ${
               activeTab === 'updates' 
                 ? 'text-emerald-400 font-bold' 
                 : 'text-slate-300 hover:text-white'
@@ -117,15 +117,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
 
-        {/* Zone 3: 1 Primary Action + Sound Toggle */}
-        <div className="flex items-center gap-3 shrink-0">
+        {/* Zone 3: Sound SFX Toggle + Subscribe Action */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={() => {
               onToggleMute();
               soundManager.playClick();
             }}
             title={isMuted ? "Unmute gaming SFX" : "Mute gaming SFX"}
-            className="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors border border-slate-700/50 cursor-pointer"
+            className="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors border border-slate-700/50 cursor-pointer"
           >
             {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
           </button>
@@ -135,10 +135,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => soundManager.playXpChime()}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all transform active:scale-95 shadow-md shadow-red-950/40 whitespace-nowrap"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-all transform active:scale-95 shadow-md shadow-red-950/40 whitespace-nowrap min-h-[38px] sm:min-h-[44px]"
           >
             <Youtube className="w-4 h-4" />
-            <span>Subscribe @{channel.name}</span>
+            <span className="hidden xs:inline sm:inline">Subscribe</span>
+            <span className="xs:hidden">Sub</span>
           </a>
         </div>
       </div>

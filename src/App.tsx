@@ -12,6 +12,7 @@ import { CommunitySection } from './components/CommunitySection';
 import { UpdatesSection } from './components/UpdatesSection';
 import { Footer } from './components/Footer';
 import { VideoModal } from './components/VideoModal';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { 
   INITIAL_CHANNEL_PROFILE, 
   INITIAL_VIDEOS, 
@@ -23,7 +24,7 @@ import { ChannelProfile, VideoItem, ModItem, CommunityPost, CommunityReply } fro
 import { soundManager } from './utils/sound';
 
 export default function App() {
-  // Channel Profile is permanently fixed to Zenvroplayz (no public customization)
+  // Channel Profile is permanently fixed to Zenvroplayz
   const channel: ChannelProfile = INITIAL_CHANNEL_PROFILE;
 
   // Videos State
@@ -42,7 +43,7 @@ export default function App() {
     return INITIAL_MODS;
   });
 
-  // Community Posts State (clean without fake comments)
+  // Community Posts State
   const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>(() => {
     const saved = localStorage.getItem('zenvro_community_posts_v2');
     if (saved) {
@@ -178,7 +179,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f15] text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#0b0f15] text-slate-100 flex flex-col font-sans pb-16 md:pb-0">
       
       {/* Top Bar Navigation */}
       <Navbar
@@ -239,11 +240,17 @@ export default function App() {
         onNavigateTab={setActiveTab}
       />
 
-      {/* Video Modal Player (Dedicated to Zenvroplayz with 0 third-party embeds) */}
+      {/* Dedicated Video Modal Player */}
       <VideoModal
         video={playingVideo}
         channel={channel}
         onClose={() => setPlayingVideo(null)}
+      />
+
+      {/* Mobile-Only Bottom Navigation Bar (Pattern 1) */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
       />
 
     </div>
