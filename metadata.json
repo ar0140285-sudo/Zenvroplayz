@@ -1,0 +1,7 @@
+{
+  "name": "Zenvroplayz Gaming Hub",
+  "description": "Official gaming website for Zenvroplayz Minecraft YouTube channel featuring gameplay videos, custom mods, server updates, and community lounge.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
