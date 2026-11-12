@@ -22,6 +22,15 @@ import {
 } from './data/initialData';
 import { ChannelProfile, VideoItem, ModItem, CommunityPost, CommunityReply } from './types';
 import { soundManager } from './utils/sound';
+import { testFirestoreConnection } from './firebase';
+import { 
+  subscribeToCommunityPosts, 
+  publishPostToCloud, 
+  addReplyToCloud, 
+  togglePostLikeInCloud, 
+  toggleReplyLikeInCloud,
+  togglePostPinInCloud 
+} from './services/communityService';
 
 export default function App() {
   // Channel Profile is permanently fixed to Zenvroplayz
@@ -45,21 +54,8 @@ export default function App() {
 
   const totalDownloads = mods.reduce((sum, m) => sum + m.downloads, 0);
 
-  // Community Posts State
-  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>(() => {
-    const saved = localStorage.getItem('zenvro_community_posts_v3');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      } catch {
-        return INITIAL_COMMUNITY_POSTS;
-      }
-    }
-    return INITIAL_COMMUNITY_POSTS;
-  });
+  // Community Posts State: Synchronized with Cloud Firestore
+  const [communityPosts, setCommunityPosts] = useState<CommunityPost[]>(INITIAL_COMMUNITY_POSTS);
 
   // Active Navigation Tab
   const [activeTab, setActiveTab] = useState<'videos' | 'mods' | 'community' | 'updates'>('videos');
@@ -70,14 +66,22 @@ export default function App() {
   // Sound SFX Mute State
   const [isMuted, setIsMuted] = useState<boolean>(() => soundManager.getIsMuted());
 
-  // Synchronize to localStorage
+  // Connect to Cloud Firestore on boot
+  useEffect(() => {
+    testFirestoreConnection();
+
+    // Subscribe to real-time live community updates across the internet
+    const unsubscribe = subscribeToCommunityPosts((cloudPosts) => {
+      setCommunityPosts(cloudPosts);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Synchronize mods to localStorage
   useEffect(() => {
     localStorage.setItem('zenvro_mods_v3', JSON.stringify(mods));
   }, [mods]);
-
-  useEffect(() => {
-    localStorage.setItem('zenvro_community_posts_v3', JSON.stringify(communityPosts));
-  }, [communityPosts]);
 
   // Handlers
   const handleToggleMute = () => {
@@ -93,22 +97,35 @@ export default function App() {
     );
   };
 
-  const handleAddPost = (newPostData: Omit<CommunityPost, 'id' | 'timestamp' | 'likes' | 'replies'>) => {
-    const newPost: CommunityPost = {
+  const handleAddPost = async (newPostData: Omit<CommunityPost, 'id' | 'timestamp' | 'likes' | 'replies'>) => {
+    // Optimistic UI update
+    const tempId = `temp_${Date.now()}`;
+    const optimisticPost: CommunityPost = {
       ...newPostData,
-      id: `post-${Date.now()}`,
+      id: tempId,
       timestamp: 'Just now',
       likes: 1,
       hasLiked: true,
       replies: []
     };
-    setCommunityPosts(prev => [newPost, ...prev]);
+    setCommunityPosts(prev => [optimisticPost, ...prev]);
+
+    // Send to Cloud Firestore
+    try {
+      await publishPostToCloud(newPostData);
+    } catch (err) {
+      console.warn("Could not sync to cloud, stored locally:", err);
+    }
   };
 
-  const handleAddReply = (postId: string, replyData: Omit<CommunityReply, 'id' | 'timestamp' | 'likes'>) => {
-    const newReply: CommunityReply = {
+  const handleAddReply = async (postId: string, replyData: Omit<CommunityReply, 'id' | 'timestamp' | 'likes'>) => {
+    const targetPost = communityPosts.find(p => p.id === postId);
+    if (!targetPost) return;
+
+    // Optimistic update
+    const tempReply: CommunityReply = {
       ...replyData,
-      id: `reply-${Date.now()}`,
+      id: `temp_reply_${Date.now()}`,
       timestamp: 'Just now',
       likes: 0
     };
@@ -118,60 +135,94 @@ export default function App() {
         if (post.id === postId) {
           return {
             ...post,
-            replies: [...post.replies, newReply]
+            replies: [...post.replies, tempReply]
           };
         }
         return post;
       })
     );
+
+    // Send to Cloud Firestore
+    try {
+      await addReplyToCloud(postId, targetPost.replies, replyData);
+    } catch (err) {
+      console.warn("Could not sync reply to cloud:", err);
+    }
   };
 
-  const handleToggleLikePost = (postId: string) => {
+  const handleToggleLikePost = async (postId: string) => {
+    let newLikes = 0;
     setCommunityPosts(prev =>
       prev.map(post => {
         if (post.id === postId) {
           const isLiked = !post.hasLiked;
+          newLikes = isLiked ? post.likes + 1 : Math.max(0, post.likes - 1);
           return {
             ...post,
             hasLiked: isLiked,
-            likes: isLiked ? post.likes + 1 : Math.max(0, post.likes - 1)
+            likes: newLikes
           };
         }
         return post;
       })
     );
+
+    try {
+      await togglePostLikeInCloud(postId, newLikes);
+    } catch (err) {
+      console.warn("Could not update like in cloud:", err);
+    }
   };
 
-  const handleToggleLikeReply = (postId: string, replyId: string) => {
+  const handleToggleLikeReply = async (postId: string, replyId: string) => {
+    let updatedReplies: CommunityReply[] = [];
     setCommunityPosts(prev =>
       prev.map(post => {
         if (post.id === postId) {
+          updatedReplies = post.replies.map(rep => {
+            if (rep.id === replyId) {
+              const isLiked = !rep.hasLiked;
+              return {
+                ...rep,
+                hasLiked: isLiked,
+                likes: isLiked ? rep.likes + 1 : Math.max(0, rep.likes - 1)
+              };
+            }
+            return rep;
+          });
           return {
             ...post,
-            replies: post.replies.map(rep => {
-              if (rep.id === replyId) {
-                const isLiked = !rep.hasLiked;
-                return {
-                  ...rep,
-                  hasLiked: isLiked,
-                  likes: isLiked ? rep.likes + 1 : Math.max(0, rep.likes - 1)
-                };
-              }
-              return rep;
-            })
+            replies: updatedReplies
           };
         }
         return post;
       })
     );
+
+    try {
+      await toggleReplyLikeInCloud(postId, updatedReplies);
+    } catch (err) {
+      console.warn("Could not update reply like in cloud:", err);
+    }
   };
 
-  const handleTogglePinPost = (postId: string) => {
+  const handleTogglePinPost = async (postId: string) => {
+    let newPinned = false;
     setCommunityPosts(prev =>
-      prev.map(post =>
-        post.id === postId ? { ...post, isPinned: !post.isPinned } : post
-      )
+      prev.map(post => {
+        if (post.id === postId) {
+          newPinned = !post.isPinned;
+          return { ...post, isPinned: newPinned };
+        }
+        return post;
+      })
     );
+
+    try {
+      await togglePostPinInCloud(postId, newPinned);
+    } catch (err) {
+      console.warn("Could not update pin in cloud:", err);
+    }
   };
 
   const scrollToCommunity = () => {
@@ -218,7 +269,7 @@ export default function App() {
           onDownloadMod={handleDownloadMod}
         />
 
-        {/* Community Lounge & Discussions */}
+        {/* Community Lounge & Live Cloud Chat */}
         <CommunitySection
           channel={channel}
           posts={communityPosts}
@@ -250,7 +301,7 @@ export default function App() {
         onClose={() => setPlayingVideo(null)}
       />
 
-      {/* Mobile-Only Bottom Navigation Bar (Pattern 1) */}
+      {/* Mobile-Only Bottom Navigation Bar */}
       <MobileBottomNav
         activeTab={activeTab}
         setActiveTab={setActiveTab}

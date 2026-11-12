@@ -1,0 +1,30 @@
+{
+  "entities": {
+    "CommunityPost": {
+      "title": "CommunityPost",
+      "description": "Public discussion post or chat message in Zenvroplayz community",
+      "type": "object",
+      "properties": {
+        "authorName": { "type": "string", "maxLength": 100 },
+        "authorHandle": { "type": "string", "maxLength": 100 },
+        "authorAvatar": { "type": "string", "maxLength": 500 },
+        "isCreator": { "type": "boolean" },
+        "isPinned": { "type": "boolean" },
+        "category": { "type": "string", "enum": ["General", "Mod Ideas", "SMP Server", "Fan Art", "Video Feedback"] },
+        "title": { "type": "string", "maxLength": 200 },
+        "content": { "type": "string", "maxLength": 2000 },
+        "timestamp": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "likes": { "type": "number" },
+        "replies": { "type": "array" }
+      },
+      "required": ["authorName", "content", "category", "likes"]
+    }
+  },
+  "firestore": {
+    "/community_posts/{postId}": {
+      "schema": { "$ref": "#/entities/CommunityPost" },
+      "description": "Live community posts, comments, and discussions shared across all viewers"
+    }
+  }
+}
