@@ -21,10 +21,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const handleNavClick = (tab: 'videos' | 'mods' | 'community' | 'updates') => {
     soundManager.playClick();
     setActiveTab(tab);
-    const element = document.getElementById(tab);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
   };
 
   return (

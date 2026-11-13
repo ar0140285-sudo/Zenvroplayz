@@ -21,10 +21,6 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   const handleTabClick = (tabId: 'videos' | 'mods' | 'community' | 'updates') => {
     soundManager.playClick();
     setActiveTab(tabId);
-    const element = document.getElementById(tabId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
   };
 
   return (

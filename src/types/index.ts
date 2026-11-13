@@ -53,6 +53,7 @@ export interface CommunityPost {
   content: string;
   attachmentUrl?: string;
   timestamp: string;
+  createdAt?: number;
   likes: number;
   hasLiked?: boolean;
   replies: CommunityReply[];

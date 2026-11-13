@@ -2,7 +2,7 @@
   "entities": {
     "CommunityPost": {
       "title": "CommunityPost",
-      "description": "Public discussion post or chat message in Zenvroplayz community",
+      "description": "Public discussion post or chat message in Zenvroplayz community with 35-day auto-expiry for unpinned posts",
       "type": "object",
       "properties": {
         "authorName": { "type": "string", "maxLength": 100 },
@@ -18,13 +18,13 @@
         "likes": { "type": "number" },
         "replies": { "type": "array" }
       },
-      "required": ["authorName", "content", "category", "likes"]
+      "required": ["authorName", "content", "category", "likes", "createdAt"]
     }
   },
   "firestore": {
     "/community_posts/{postId}": {
       "schema": { "$ref": "#/entities/CommunityPost" },
-      "description": "Live community posts, comments, and discussions shared across all viewers"
+      "description": "Live community posts, comments, and discussions shared across all viewers; unpinned posts expire after 35 days"
     }
   }
 }
